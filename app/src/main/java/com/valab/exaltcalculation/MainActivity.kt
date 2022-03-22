@@ -5,20 +5,26 @@ import android.os.Bundle
 import android.widget.EditText
 import android.widget.TextView
 import androidx.core.widget.doAfterTextChanged
-import org.jsoup.Jsoup
+import org.json.JSONObject
+import org.json.JSONTokener
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.math.floor
+import kotlin.math.roundToInt
 
 class MainActivity : AppCompatActivity() {
+
+    private val tvPrice : TextView by lazy { findViewById(R.id.tvPrice) }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val tvPrice = findViewById<TextView>(R.id.tvPrice)
-        val tvCalcAnswer = findViewById<TextView>(R.id.tvCalcAnsver)
+        val tvCalcAnswer = findViewById<TextView>(R.id.tvCalcAnswer)
         val etCalcNumber = findViewById<EditText>(R.id.etСalcNumber)
 
-        checkPrice()
-        
-        tvPrice.text = PriceObject.toString()
+
+        checkPrice().start()
+
         etCalcNumber.doAfterTextChanged {
             val numb = it.toString().toFloatOrNull()
             tvCalcAnswer.text = if (numb != null ){
@@ -28,21 +34,34 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun priced(calcNumber: Float): String{
-        return (calcNumber * PriceObject.exaltPrice).toString()
+        return (calcNumber * PriceObject.exaltPrice).roundToInt().toString()
     }
 
-    private fun checkPrice(){
-        val exaltURL = this.getString(R.string.ninjaExaltPriceURL)
-        val doc = Jsoup.connect(exaltURL).get()
-        val valueBlock = doc.select("span[class=css-fko97h]")
-        val value = valueBlock.select("div")
-            .select("span")
-            .select("font")
-            .text()
-        PriceObject.exaltPrice = if (value.toFloatOrNull() != null){
-            value.toFloat()
-        }else{
-            0f
+
+    private fun checkPrice() = Thread{
+        val jsonAsStr = getDataFromServer()
+        val jsonObject = JSONTokener(jsonAsStr).nextValue() as JSONObject
+        val jsonArray = jsonObject.getJSONArray("lines")
+        for (i in 0 until jsonArray.length()){
+            if (jsonArray.getJSONObject(i).getString("currencyTypeName") == "Exalted Orb"){
+                val price = jsonArray.getJSONObject(i)
+                    .getJSONObject("receive")
+                    .getDouble("value")
+                PriceObject.exaltPrice = floor(price * 100) / 100.0
+                runOnUiThread{  tvPrice.text = PriceObject.exaltPrice.toString() }
+            }
         }
+
+
+    }
+
+    private fun getDataFromServer(): String {
+        val exaltURL = URL(this.getString(R.string.ninjaExaltPriceURL))
+        val urlConnection = exaltURL.openConnection() as HttpURLConnection
+        urlConnection.requestMethod = "GET"
+        urlConnection.connectTimeout = 5000
+        urlConnection.readTimeout = 5000
+
+        return urlConnection.inputStream.bufferedReader().readText()
     }
 }

@@ -2,5 +2,9 @@
     <string name="app_name">exaltCalculation</string>
     <string name="incorrectValue">Некоректное значение</string>
 
-    <string name="ninjaExaltPriceURL">https://poe.ninja/challenge/currency/exalted-orb</string>
+    <string name="exalt">Exalt Orb</string>
+    <string name="chaos">Chaos Orb</string>
+    <string name="Arrow">Arrow</string>
+    <string name="inputLine">Введите значение</string>
+    <string name="ninjaExaltPriceURL">https://poe.ninja/api/data/CurrencyOverview?league=Archnemesis&amp;type=Currency&amp;language=ru</string>
 </resources>
